@@ -23,8 +23,9 @@ HEX_COLORS = [
 
 ICONS = {
     'blue': 'https://maps.google.com/mapfiles/kml/paddle/blu-circle-lv.png',
-    'red':  'https://maps.google.com/mapfiles/kml/paddle/red-circle-lv.png'
+    'red': 'https://maps.google.com/mapfiles/kml/paddle/red-circle-lv.png'
 }
+
 
 # Models (aka DataSets)
 
@@ -224,7 +225,7 @@ class PlantSizePieChart(Chart):
     def get_chart_options(self, app_session):
         return {'title': 'Relative Plants Sizes'}
 
-# Execute Functions
+# Execute Function Buttons
 
 
 class ExecuteSolverFunction(ExecuteFunction):
@@ -242,6 +243,15 @@ class ExecuteSolverFunction(ExecuteFunction):
 
 
 # Application
+
+# Post code geocode data sourced from
+# http://blog.orite.com.au/wp-content/uploads/2009/01/aupcgeo.7z
+def load_brisbane_data(app_session):
+    read_write_xl.ExcelReader.load_data_from_excel_file_on_disk(
+        app_session,
+        pkg_resources.resource_filename(
+            'te_facility_location', 'facility_location_example_data.xlsx')
+    )
 
 
 class MyFacilityLocationSolverApp(AppWithDataSets):
@@ -302,11 +312,15 @@ class MyFacilityLocationSolverApp(AppWithDataSets):
             self.get_app_version(),
         )
 
+# Problem Solving
+
 
 def haversine(lon1, lat1, lon2, lat2):
-    """
-    Calculate the great circle distance between two points on the earth (specified in decimal degrees)
-    From http://stackoverflow.com/questions/4913349/haversine-formula-in-python-bearing-and-distance-between-two-gps-points
+    r"""Calculate the great circle distance between two points on the earth.
+
+    Distance is to be specified in decimal degrees.
+    See: http://stackoverflow.com/questions/4913349/haversine-formula-in-\
+    python-bearing-and-distance-between-two-gps-points
     """
     # convert decimal degrees to radians
     lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
@@ -393,13 +407,3 @@ def formulate_and_solve_facility_location_problem(app_session):
 
     # Send a some final progress messages
     app_session.task_manager.send_progress_message("Finished")
-
-
-# Post code geocode data sourced from
-# http://blog.orite.com.au/wp-content/uploads/2009/01/aupcgeo.7z
-def load_brisbane_data(app_session):
-    read_write_xl.ExcelReader.load_data_from_excel_file_on_disk(
-        app_session,
-        pkg_resources.resource_filename(
-            'te_facility_location', 'facility_location_example_data.xlsx')
-    )
