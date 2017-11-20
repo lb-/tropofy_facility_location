@@ -1,27 +1,20 @@
-"""
-Author:      www.tropofy.com
+from math import asin, cos, radians, sin, sqrt
 
-Copyright 2015 Tropofy Pty Ltd, all rights reserved.
-
-This source file is part of Tropofy and governed by the Tropofy terms of service
-available at: http://www.tropofy.com/terms_of_service.html
-
-This source file is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
-"""
 import pkg_resources
-from math import radians, cos, sin, asin, sqrt
-from pulp import LpVariable, lpSum, value, LpProblem, LpMinimize, LpInteger, LpStatus
-from sqlalchemy.types import Integer, Text, Float
-from sqlalchemy.schema import Column, ForeignKeyConstraint, UniqueConstraint
+
+from pulp import (
+    LpInteger, LpMinimize, LpProblem, LpStatus, LpVariable, lpSum, value)
+
+from simplekml import Icon, IconStyle, Kml, LineStyle, Style
+
 from sqlalchemy.orm import relationship
-from simplekml import Kml, Style, IconStyle, Icon, LineStyle
+from sqlalchemy.schema import Column, ForeignKeyConstraint, UniqueConstraint
+from sqlalchemy.types import Float, Integer, Text
 
 from tropofy.app import AppWithDataSets, Step, StepGroup
-from tropofy.widgets import ExecuteFunction, SimpleGrid, KMLMap, Chart
 from tropofy.database.tropofy_orm import DataSetMixin
 from tropofy.file_io import read_write_xl
+from tropofy.widgets import Chart, ExecuteFunction, KMLMap, SimpleGrid
 
 
 class Shop(DataSetMixin):
@@ -42,12 +35,14 @@ class Plant(DataSetMixin):
     capacity = Column(Integer, nullable=False)
     fixed_cost = Column(Integer, nullable=False)
 
-    flows = relationship('Flow', cascade='all')  # See SQLAlchemy documentation on relationship. (String used for class name as not yet defined here)
+    # See SQLAlchemy documentation on relationship.
+    # (String used for class name as not yet defined here)
+    flows = relationship('Flow', cascade='all')
 
     @classmethod
     def get_table_args(cls):
         return (UniqueConstraint('data_set_id', 'name'),)
-    
+
 
 class Flow(DataSetMixin):
     plant_name = Column(Text, nullable=False)
@@ -60,8 +55,18 @@ class Flow(DataSetMixin):
     @classmethod
     def get_table_args(cls):
         return (
-            ForeignKeyConstraint(['shop_name', 'data_set_id'], ['shop.name', 'shop.data_set_id'], ondelete='CASCADE', onupdate='CASCADE'),
-            ForeignKeyConstraint(['plant_name', 'data_set_id'], ['plant.name', 'plant.data_set_id'], ondelete='CASCADE', onupdate='CASCADE')
+            ForeignKeyConstraint(
+                ['shop_name', 'data_set_id'],
+                ['shop.name', 'shop.data_set_id'],
+                ondelete='CASCADE',
+                onupdate='CASCADE'
+            ),
+            ForeignKeyConstraint(
+                ['plant_name', 'data_set_id'],
+                ['plant.name', 'plant.data_set_id'],
+                ondelete='CASCADE',
+                onupdate='CASCADE'
+            )
         )
 
 
@@ -71,7 +76,14 @@ class KMLMapInput(KMLMap):
 
         kml = Kml()
 
-        PlantStyle = Style(iconstyle=IconStyle(scale=0.8, icon=Icon(href='https://maps.google.com/mapfiles/kml/paddle/blu-circle-lv.png')))
+        icon = 'https://maps.google.com/mapfiles/kml/paddle/blu-circle-lv.png'
+
+        PlantStyle = Style(
+            iconstyle=IconStyle(
+                scale=0.8,
+                icon=Icon(href=icon)
+            )
+        )
         PlantsFolder = kml.newfolder(name="Potential Facilities")
         for p in [PlantsFolder.newpoint(name=plant.name, coords=[(plant.longitude, plant.latitude)]) for plant in app_session.data_set.query(Plant).all()]:
             p.style = PlantStyle
@@ -287,7 +299,7 @@ def formulate_and_solve_facility_location_problem(app_session):
                 shop_name=s.name,
                 volume=value(flow[p][s])
             )
-        )   
+        )
 
     # Send a some final progress messages
     app_session.task_manager.send_progress_message("Finished")
@@ -299,4 +311,3 @@ def load_brisbane_data(app_session):
         app_session,
         pkg_resources.resource_filename('te_facility_location', 'facility_location_example_data.xlsx')
     )
-
