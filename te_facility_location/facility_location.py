@@ -17,6 +17,8 @@ from tropofy.file_io import read_write_xl
 from tropofy.widgets import Chart, ExecuteFunction, KMLMap, SimpleGrid
 
 
+# Models (aka DataSets)
+
 class Shop(DataSetMixin):
     name = Column(Text, nullable=False)
     latitude = Column(Float, nullable=False)
@@ -70,28 +72,47 @@ class Flow(DataSetMixin):
         )
 
 
+# Widgets
+
 class KMLMapInput(KMLMap):
 
     def get_kml(self, app_session):
 
         kml = Kml()
 
-        icon = 'https://maps.google.com/mapfiles/kml/paddle/blu-circle-lv.png'
+        # set up map points for Plants
 
-        PlantStyle = Style(
-            iconstyle=IconStyle(
-                scale=0.8,
-                icon=Icon(href=icon)
-            )
-        )
-        PlantsFolder = kml.newfolder(name="Potential Facilities")
-        for p in [PlantsFolder.newpoint(name=plant.name, coords=[(plant.longitude, plant.latitude)]) for plant in app_session.data_set.query(Plant).all()]:
-            p.style = PlantStyle
+        blue_icon = 'https://maps.google.com/mapfiles/kml/paddle/\
+            blu-circle-lv.png'
 
-        ShopStyle = Style(iconstyle=IconStyle(scale=0.4, icon=Icon(href='https://maps.google.com/mapfiles/kml/paddle/red-circle-lv.png')))
-        ShopsFolder = kml.newfolder(name="Shops")
-        for p in [ShopsFolder.newpoint(name=shop.name, coords=[(shop.longitude, shop.latitude)]) for shop in app_session.data_set.query(Shop).all()]:
-            p.style = ShopStyle
+        plant_style = Style(
+            iconstyle=IconStyle(scale=0.8, icon=Icon(href=blue_icon)))
+        plants_folder = kml.newfolder(name="Potential Facilities")
+        plants_points = [
+            plants_folder.newpoint(
+                name=plant.name,
+                coords=[(plant.longitude, plant.latitude)]
+            ) for plant in app_session.data_set.query(Plant).all()
+        ]
+
+        for p in plants_points:
+            p.style = plant_style
+
+        # set up map points for Shops
+
+        red_icon = 'https://maps.google.com/mapfiles/kml/paddle/\
+            red-circle-lv.png'
+        shop_style = Style(
+            iconstyle=IconStyle(scale=0.4, icon=Icon(href=red_icon)))
+        shops_folder = kml.newfolder(name="Shops")
+        shops_points = [
+            shops_folder.newpoint(
+                name=shop.name,
+                coords=[(shop.longitude, shop.latitude)]
+            ) for shop in app_session.data_set.query(Shop).all()
+        ]
+        for p in shops_points:
+            p.style = shop_style
 
         return kml.kml()
 
