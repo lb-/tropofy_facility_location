@@ -199,17 +199,6 @@ class KMLMapOutput(KMLMap):
         return kml.kml()
 
 
-class ExecuteSolverFunction(ExecuteFunction):
-
-    def get_button_text(self, app_session):
-        return "Solve Facility Location Problem"
-
-    def execute_function(self, app_session):
-        if len(app_session.data_set.query(Shop).all()) > 200:
-            app_session.task_manager.send_progress_message("You can only solve problems with 200 shops of fewer using the free version of this app")
-        else:
-            formulate_and_solve_facility_location_problem(app_session)
-
 class PlantSizePieChart(Chart):
     def get_chart_type(self, app_session):
         return Chart.PIECHART
@@ -218,7 +207,13 @@ class PlantSizePieChart(Chart):
         return {"plant": ("string", "Plant"), "flow": ("number", "Flow")}
 
     def get_table_data(self, app_session):
-        return [{"plant": plant.name, "flow": sum(flow.volume for flow in plant.flows)} for plant in app_session.data_set.query(Plant).all()]
+        return [
+            {
+                "plant": plant.name,
+                "flow": sum(flow.volume for flow in plant.flows)
+            }
+            for plant in app_session.data_set.query(Plant).all()
+        ]
 
     def get_column_ordering(self, app_session):
         return ["plant", "flow"]
@@ -228,6 +223,23 @@ class PlantSizePieChart(Chart):
 
     def get_chart_options(self, app_session):
         return {'title': 'Relative Plants Sizes'}
+
+# Execute Functions
+
+
+class ExecuteSolverFunction(ExecuteFunction):
+
+    def get_button_text(self, app_session):
+        return "Solve Facility Location Problem"
+
+    def execute_function(self, app_session):
+        msg = "You can only solve problems with 200 shops of fewer \
+        using the free version of this app"
+        if len(app_session.data_set.query(Shop).all()) > 200:
+            app_session.task_manager.send_progress_message(msg)
+        else:
+            formulate_and_solve_facility_location_problem(app_session)
+
 
 
 class MyFacilityLocationSolverApp(AppWithDataSets):
