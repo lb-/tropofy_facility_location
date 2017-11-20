@@ -1,4 +1,5 @@
-import pkg_resources
+import keys
+
 apps_config = {
     'tropofy': {
         'api_url': 'https://api.tropofy.com',
@@ -12,8 +13,8 @@ apps_config = {
             'module': 'te_facility_location',
             'classname': 'MyFacilityLocationSolverApp',
             'config': {
-                'key.public': 'PUBLIC_KEY_HERE',
-                'key.private': 'PRIVATE_KEY_HERE'
+                'key.public': keys.public,
+                'key.private': keys.private
             }
         }
     ]
