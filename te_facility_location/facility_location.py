@@ -241,6 +241,8 @@ class ExecuteSolverFunction(ExecuteFunction):
             formulate_and_solve_facility_location_problem(app_session)
 
 
+# Application
+
 
 class MyFacilityLocationSolverApp(AppWithDataSets):
 
@@ -251,28 +253,33 @@ class MyFacilityLocationSolverApp(AppWithDataSets):
         return {"Demo data for Brisbane": load_brisbane_data}
 
     def get_static_content_path(self, app_session):
-        return pkg_resources.resource_filename('te_facility_location', 'static')
+        pth = pkg_resources.resource_filename('te_facility_location', 'static')
+        return pth
 
     def get_gui(self):
         step_group1 = StepGroup(name='Enter your data')
         step_group1.add_step(Step(
             name='Enter your locations',
             widgets=[SimpleGrid(Shop)],
-            help_text="Enter the set of locations, with their associated demand, that need to be serviced by a facility"
+            help_text="Enter the set of locations, with their associated \
+            demand, that need to be serviced by a facility"
         ))
         step_group1.add_step(Step(
             name='Enter your candidate facilities',
             widgets=[SimpleGrid(Plant)],
-            help_text="Enter the set of candidate facilities with their capacities and commissioning costs"
+            help_text="Enter the set of candidate facilities with their \
+            capacities and commissioning costs"
         ))
         step_group1.add_step(Step(
             name='Review your data',
             widgets=[KMLMapInput()],
-            help_text="Review the locations and candidate facilities entered for correctness"
+            help_text="Review the locations and candidate facilities entered \
+            for correctness"
         ))
 
         step_group2 = StepGroup(name='Solve')
-        step_group2.add_step(Step(name='Solve Facility Location Optimisation Problem', widgets=[ExecuteSolverFunction()]))
+        step_group2.add_step(Step(name='Solve Facility Location Optimisation \
+        Problem', widgets=[ExecuteSolverFunction()]))
 
         step_group3 = StepGroup(name='View the Solution')
         step_group3.add_step(Step(
@@ -282,7 +289,9 @@ class MyFacilityLocationSolverApp(AppWithDataSets):
                 {"widget": PlantSizePieChart(), "cols": 6},
                 {"widget": KMLMapOutput(), "cols": 12}
             ],
-            help_text="The grid below shows the amount of product flowing from facilities to locations. The map shows the same info geographically."
+            help_text="The grid below shows the amount of product flowing \
+            from facilities to locations. The map shows the same info \
+            geographically."
         ))
 
         return [step_group1, step_group2, step_group3]
