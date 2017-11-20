@@ -1,0 +1,2 @@
+recursive-include te_facility_location *.xlsx
+recursive-include te_facility_location/static *
