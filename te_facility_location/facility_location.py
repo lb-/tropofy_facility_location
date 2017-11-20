@@ -17,6 +17,15 @@ from tropofy.file_io import read_write_xl
 from tropofy.widgets import Chart, ExecuteFunction, KMLMap, SimpleGrid
 
 
+HEX_COLORS = [
+    'FFFFFF00', 'FF00F5FF', 'FF00FA9A', 'FFC0FF3E', 'FFCAE1FF',
+    'FFFCE6C9', 'FFEE6A50', 'FFFF6A6A', 'FF7171C6', 'FF71C671']
+
+ICONS = {
+    'blue': 'https://maps.google.com/mapfiles/kml/paddle/blu-circle-lv.png',
+    'red':  'https://maps.google.com/mapfiles/kml/paddle/red-circle-lv.png'
+}
+
 # Models (aka DataSets)
 
 class Shop(DataSetMixin):
@@ -74,6 +83,13 @@ class Flow(DataSetMixin):
 
 # Widgets
 
+plant_style = Style(
+    iconstyle=IconStyle(scale=0.8, icon=Icon(href=ICONS['blue'])))
+
+shop_style = Style(
+    iconstyle=IconStyle(scale=0.4, icon=Icon(href=ICONS['red'])))
+
+
 class KMLMapInput(KMLMap):
 
     def get_kml(self, app_session):
@@ -82,11 +98,6 @@ class KMLMapInput(KMLMap):
 
         # set up map points for Plants
 
-        blue_icon = 'https://maps.google.com/mapfiles/kml/paddle/\
-            blu-circle-lv.png'
-
-        plant_style = Style(
-            iconstyle=IconStyle(scale=0.8, icon=Icon(href=blue_icon)))
         plants_folder = kml.newfolder(name="Potential Facilities")
         plants_points = [
             plants_folder.newpoint(
@@ -100,10 +111,6 @@ class KMLMapInput(KMLMap):
 
         # set up map points for Shops
 
-        red_icon = 'https://maps.google.com/mapfiles/kml/paddle/\
-            red-circle-lv.png'
-        shop_style = Style(
-            iconstyle=IconStyle(scale=0.4, icon=Icon(href=red_icon)))
         shops_folder = kml.newfolder(name="Shops")
         shops_points = [
             shops_folder.newpoint(
@@ -121,33 +128,73 @@ class KMLMapOutput(KMLMap):
 
     @staticmethod
     def get_cycled_hex_colour(n):
-        hex_colours = ['FFFFFF00', 'FF00F5FF', 'FF00FA9A', 'FFC0FF3E', 'FFCAE1FF', 'FFFCE6C9', 'FFEE6A50', 'FFFF6A6A', 'FF7171C6', 'FF71C671']
-        return hex_colours[n % 10]
+        return HEX_COLORS[n % 10]
 
     def get_kml(self, app_session):
 
         kml = Kml()
         flows = app_session.data_set.query(Flow).all()
-        PlantsUsed = list(set([flow.plant for flow in flows]))
 
-        PlantStyle = Style(iconstyle=IconStyle(scale=0.8, icon=Icon(href='https://maps.google.com/mapfiles/kml/paddle/blu-circle-lv.png')))
-        PlantsUsedFolder = kml.newfolder(name="Facilities Chosen")
-        for p in [PlantsUsedFolder.newpoint(name=plant.name, coords=[(plant.longitude, plant.latitude)]) for plant in PlantsUsed]:
-            p.style = PlantStyle
-        PlantsNotUsedFolder = kml.newfolder(name="Facilities Not Chosen")
-        for p in [PlantsNotUsedFolder.newpoint(name=plant.name, coords=[(plant.longitude, plant.latitude)]) for plant in app_session.data_set.query(Plant).all() if plant not in PlantsUsed]:
-            p.style = PlantStyle
+        # set up points for Plants used
 
-        ShopStyle = Style(iconstyle=IconStyle(scale=0.4, icon=Icon(href='https://maps.google.com/mapfiles/kml/paddle/red-circle-lv.png')))
-        for plant in PlantsUsed:
-            CatchmentFolder = kml.newfolder(name="Catchment for " + plant.name)
-            for point in [CatchmentFolder.newpoint(name=shop.name, coords=[(shop.longitude, shop.latitude)]) for shop in [flow.shop for flow in plant.flows]]:
-                point.style = ShopStyle
-            plantloc = CatchmentFolder.newpoint(name=plant.name, coords=[(plant.longitude, plant.latitude)])
-            plantloc.style = PlantStyle
-            CatchmentLineStyle = Style(linestyle=LineStyle(color=KMLMapOutput.get_cycled_hex_colour(PlantsUsed.index(plant)), width=4))
-            for l in [CatchmentFolder.newlinestring(name='From: %s<br>To: %s<br>Flow: %s' % (flow.plant_name, flow.shop_name, flow.volume), coords=[(flow.plant.longitude, flow.plant.latitude), (flow.shop.longitude, flow.shop.latitude)]) for flow in plant.flows]:
-                l.style = CatchmentLineStyle
+        plants_used = list(set([flow.plant for flow in flows]))
+
+        plants_used_folder = kml.newfolder(name="Facilities Chosen")
+        plants_used_points = [
+            plants_used_folder.newpoint(
+                name=plant.name,
+                coords=[(plant.longitude, plant.latitude)]
+            )
+            for plant in plants_used
+        ]
+        for p in plants_used_points:
+            p.style = plant_style
+
+        # set up points for Plants not used
+
+        plants_not_used_folder = kml.newfolder(name="Facilities Not Chosen")
+        plants_not_used_points = [
+            plants_not_used_folder.newpoint(
+                name=plant.name,
+                coords=[(plant.longitude, plant.latitude)]
+            ) for plant in app_session.data_set.query(Plant).all()
+            if plant not in plants_used
+        ]
+        for p in plants_not_used_points:
+            p.style = plant_style
+
+        for plant in plants_used:
+            catchment_folder = kml.newfolder(
+                name="Catchment for " + plant.name)
+            catchment_points = [
+                catchment_folder.newpoint(
+                    name=shop.name,
+                    coords=[(shop.longitude, shop.latitude)]
+                ) for shop in [flow.shop for flow in plant.flows]
+            ]
+            for point in catchment_points:
+                point.style = shop_style
+
+            plant_location = catchment_folder.newpoint(
+                name=plant.name, coords=[(plant.longitude, plant.latitude)])
+            plant_location.style = plant_style
+            catchment_line_style = Style(
+                linestyle=LineStyle(
+                    color=KMLMapOutput.get_cycled_hex_colour(
+                        plants_used.index(plant)),
+                    width=4
+                )
+            )
+            catchment_lines = [catchment_folder.newlinestring(
+                name='From: %s<br>To: %s<br>Flow: %s' %
+                (flow.plant_name, flow.shop_name, flow.volume),
+                coords=[
+                    (flow.plant.longitude, flow.plant.latitude),
+                    (flow.shop.longitude, flow.shop.latitude)
+                ]) for flow in plant.flows
+            ]
+            for l in catchment_lines:
+                l.style = catchment_line_style
 
         return kml.kml()
 
