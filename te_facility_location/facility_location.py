@@ -395,12 +395,6 @@ def formulate_and_solve_facility_location_problem(app_session):
             unless it is built" % (s.name, p.name)
         prob += constraint, message
 
-    # The problem data is written to an .lp file
-    #prob.writeLP("ComputerPlantProblem.lp")
-
-    # Send a progress message
-    #app_session.task_manager.send_progress_message("Calling solver")
-
     # The problem is solved using PuLP's choice of Solver
     prob.solve()
 
@@ -425,4 +419,5 @@ def formulate_and_solve_facility_location_problem(app_session):
             )
 
     # Send a some final progress messages
-    app_session.task_manager.send_progress_message("Finished")
+    app_session.task_manager.send_progress_message(
+        "Finished, click 'View the Solution' on the left.")
