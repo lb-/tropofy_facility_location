@@ -383,20 +383,23 @@ def formulate_and_solve_facility_location_problem(app_session):
     # add the solution
     for (p, s) in Routes:
         if value(flow[p][s]) != 0:
-            app_session.data_set.add(Flow(
-                plant_name=p.name,
-                shop_name=s.name,
-                volume=value(flow[p][s])
+            app_session.data_set.add(
+                Flow(
+                    plant_name=p.name,
+                    shop_name=s.name,
+                    volume=value(flow[p][s])
+                )
             )
-        )
 
     # Send a some final progress messages
     app_session.task_manager.send_progress_message("Finished")
 
 
-# Post code geocode data sourced from http://blog.orite.com.au/wp-content/uploads/2009/01/aupcgeo.7z
+# Post code geocode data sourced from
+# http://blog.orite.com.au/wp-content/uploads/2009/01/aupcgeo.7z
 def load_brisbane_data(app_session):
     read_write_xl.ExcelReader.load_data_from_excel_file_on_disk(
         app_session,
-        pkg_resources.resource_filename('te_facility_location', 'facility_location_example_data.xlsx')
+        pkg_resources.resource_filename(
+            'te_facility_location', 'facility_location_example_data.xlsx')
     )
