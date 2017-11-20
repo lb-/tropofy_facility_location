@@ -334,49 +334,66 @@ def haversine(lon1, lat1, lon2, lat2):
 
 
 def transportation_cost_per_unit(plant, shop):
-    #  Just use the great circle distance with no multiplier
-    return haversine(plant.longitude, plant.latitude, shop.longitude, shop.latitude)
+    """Use the great circle distance with no multiplier to determine cost."""
+    return haversine(
+        plant.longitude, plant.latitude, shop.longitude, shop.latitude)
 
 
 def formulate_and_solve_facility_location_problem(app_session):
-    '''
-    This formulation (apart from one addition) is taken from the PuLP examples and adapted to use the Tropofy framework
-    see http://pulp-or.googlecode.com/svn/trunk/pulp-or/examples/ComputerPlantProblem.py
+    r"""Solve faclity location problem.
+
+    This formulation (apart from one addition) is taken from the PuLP examples
+    and adapted to use the Tropofy framework.
+    See: http://pulp-or.googlecode.com/svn/trunk/pulp-or/examples/\
+    ComputerPlantProblem.py
     Authors: Antony Phillips, Dr Stuart Mitchell 2007
     Used with permission.
-    '''
+    """
     # Send a progress message
     app_session.task_manager.send_progress_message("Commencing optimisation")
 
-    Shops = app_session.data_set.query(Shop).all()
-    Plants = app_session.data_set.query(Plant).all()
+    shops = app_session.data_set.query(Shop).all()
+    plants = app_session.data_set.query(Plant).all()
 
-    # Creates a list of tuples containing all the possible routes for transport between plants and shops
-    Routes = [(p, s) for p in Plants for s in Shops]
+    # Creates a list of tuples containing all the possible routes for transport
+    # between plants and shops
+    routes = [(p, s) for p in plants for s in shops]
 
-    # Creates the problem variables for the flow on the routes from plants to shops
-    flow = LpVariable.dicts("Route", (Plants, Shops), 0, None, LpInteger)
+    # Creates the problem variables for the flow on the routes
+    # from plants to shops
+    flow = LpVariable.dicts("Route", (plants, shops), 0, None, LpInteger)
 
-    # Creates the master problem variables of whether to build the Plants or not
-    build = LpVariable.dicts("BuildaPlant", Plants, 0, 1, LpInteger)
+    # Creates the master problem variables of whether to
+    # build the Plants or not
+    build = LpVariable.dicts("BuildaPlant", plants, 0, 1, LpInteger)
 
     # Creates the 'prob' variable to contain the problem data
     prob = LpProblem("Facility Location Problem", LpMinimize)
 
-    # The objective function is added to prob - The sum of the transportation costs and the building fixed costs
-    prob += lpSum([flow[p][s] * transportation_cost_per_unit(p, s) for (p, s) in Routes]) + lpSum([p.fixed_cost * build[p] for p in Plants]), "Total Costs"
+    # The objective function is added to prob:
+    # The sum of the transportation costs and the building fixed costs
+    prob += lpSum([
+        flow[p][s] * transportation_cost_per_unit(p, s) for (p, s) in routes
+    ]) + lpSum([p.fixed_cost * build[p] for p in plants]), "Total Costs"
 
     # The Supply maximum constraints are added for each supply node (plant)
-    for p in Plants:
-        prob += lpSum([flow[p][s] for s in Shops]) <= p.capacity * build[p], "Sum of Products out of Plant %s" % p.name
+    for p in plants:
+        prob += lpSum([
+            flow[p][s] for s in shops
+        ]) <= p.capacity * build[p], "Sum of Products out of Plant %s" % p.name
 
     # The Demand minimum constraints are added for each demand node (shop)
-    for s in Shops:
-        prob += lpSum([flow[p][s] for p in Plants]) >= s.demand, "Sum of Products into Shops %s" % s.name
+    for s in shops:
+        prob += lpSum([
+            flow[p][s] for p in plants
+        ]) >= s.demand, "Sum of Products into Shops %s" % s.name
 
     # Add some extra constraints to improve integrality
-    for (p, s) in Routes:
-        prob += flow[p][s] <= s.demand * build[p], "Can not flow to shop %s from plant %s unless it is built" % (s.name, p.name)
+    for (p, s) in routes:
+        constraint = flow[p][s] <= s.demand * build[p]
+        message = "Can not flow to shop %s from plant %s \
+            unless it is built" % (s.name, p.name)
+        prob += constraint, message
 
     # The problem data is written to an .lp file
     #prob.writeLP("ComputerPlantProblem.lp")
@@ -388,14 +405,16 @@ def formulate_and_solve_facility_location_problem(app_session):
     prob.solve()
 
     # Send a progress message
-    app_session.task_manager.send_progress_message("Status:" + LpStatus[prob.status])
-    app_session.task_manager.send_progress_message("Total Cost = " + str(value(prob.objective)))
+    app_session.task_manager.send_progress_message(
+        "Status:" + LpStatus[prob.status])
+    app_session.task_manager.send_progress_message(
+        "Total Cost = " + str(value(prob.objective)))
 
     # Delete the previous solution
     app_session.data_set.query(Flow).delete()
 
     # add the solution
-    for (p, s) in Routes:
+    for (p, s) in routes:
         if value(flow[p][s]) != 0:
             app_session.data_set.add(
                 Flow(
