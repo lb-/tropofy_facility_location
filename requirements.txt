@@ -45,7 +45,7 @@ tropofycommon==1.0.3
 typing==3.5.3.0
 Unidecode==0.4.21
 urllib3==1.22
-waitress==1.1.0
+waitress==1.4.1
 Werkzeug==0.12.2
 xlrd==0.9.4
 xmltodict==0.10.2
